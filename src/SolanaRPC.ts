@@ -48,20 +48,6 @@ export class SolanaRPC {
     return new SolanaRPC({ url, network });
   }
 
-  generate() {
-    const wallet = Keypair.generate();
-
-    return {
-      publicKey: wallet.publicKey.toBase58(),
-      privateKey: Buffer.from(wallet.secretKey).toString('hex'),
-    };
-  }
-
-  publicKey(privateKey: string) {
-    const secretKey = Uint8Array.from(Buffer.from(privateKey, 'hex'));
-    return Keypair.fromSecretKey(secretKey).publicKey.toBase58();
-  }
-
   async getSignaturesForAddress({
     address,
     ...configuration

@@ -1,6 +1,6 @@
 import * as _solana_spl_token from '@solana/spl-token';
 import * as _solana_web3_js from '@solana/web3.js';
-import { Connection, ParsedTransactionWithMeta, PublicKey } from '@solana/web3.js';
+import { Connection, ParsedTransactionWithMeta, Keypair, PublicKey } from '@solana/web3.js';
 
 declare class SolanaRPC {
     readonly network: 'mainnet' | 'devnet';
@@ -14,11 +14,6 @@ declare class SolanaRPC {
         url?: string;
         network?: 'mainnet' | 'devnet';
     }): SolanaRPC;
-    generate(): {
-        publicKey: string;
-        privateKey: string;
-    };
-    publicKey(privateKey: string): string;
     getSignaturesForAddress({ address, ...configuration }: {
         address: string;
         limit?: number;
@@ -45,6 +40,18 @@ declare class SolanaRPC {
     }): Promise<_solana_spl_token.Mint>;
 }
 
+declare class KeyVaultService {
+    private encryptionKey;
+    constructor(encryptionKey: string);
+    encryptPrivateKey(hexPrivateKey: string): string;
+    decryptPrivateKey(encrypted: string): string;
+    generateWallet(): {
+        publicKey: string;
+        privateKeyEncrypted: string;
+    };
+    loadWallet(encryptedPrivateKey: string): Keypair;
+}
+
 type TransferInfo = {
     source: string;
     destination: string;
@@ -55,4 +62,4 @@ declare function parseTransfers(parsedTransaction: ParsedTransactionWithMeta): T
 declare function hasAta(connection: Connection, mintAddress: string, ownerAddress: string): Promise<boolean>;
 declare function createAtaInstruction(payer: PublicKey, mint: PublicKey, owner: PublicKey): _solana_web3_js.TransactionInstruction;
 
-export { SolanaRPC, createAtaInstruction, hasAta, parseTransfers };
+export { KeyVaultService, SolanaRPC, createAtaInstruction, hasAta, parseTransfers };

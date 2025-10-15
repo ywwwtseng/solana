@@ -115,17 +115,6 @@ var SolanaRPC = class _SolanaRPC {
   init({ url, network }) {
     return new _SolanaRPC({ url, network });
   }
-  generate() {
-    const wallet = Keypair.generate();
-    return {
-      publicKey: wallet.publicKey.toBase58(),
-      privateKey: Buffer.from(wallet.secretKey).toString("hex")
-    };
-  }
-  publicKey(privateKey) {
-    const secretKey = Uint8Array.from(Buffer.from(privateKey, "hex"));
-    return Keypair.fromSecretKey(secretKey).publicKey.toBase58();
-  }
   async getSignaturesForAddress({
     address,
     ...configuration
@@ -260,7 +249,64 @@ var SolanaRPC = class _SolanaRPC {
     return await getMint(this.connection, new PublicKey2(mint));
   }
 };
+
+// src/KeyVaultService.ts
+import crypto from "crypto";
+import { Keypair as Keypair2 } from "@solana/web3.js";
+var IV_LENGTH = 16;
+var KeyVaultService = class {
+  encryptionKey;
+  constructor(encryptionKey) {
+    this.encryptionKey = encryptionKey;
+  }
+  encryptPrivateKey(hexPrivateKey) {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv(
+      "aes-256-gcm",
+      Buffer.from(this.encryptionKey, "hex").toString("hex"),
+      // Explicitly cast to Uint8Array to satisfy strict type checking
+      iv.toString("hex")
+    );
+    let encrypted = cipher.update(hexPrivateKey, "utf8", "hex");
+    encrypted += cipher.final("hex");
+    const tag = cipher.getAuthTag().toString("hex");
+    return `${iv.toString("hex")}:${encrypted}:${tag}`;
+  }
+  decryptPrivateKey(encrypted) {
+    const [ivHex, encryptedHex, tagHex] = encrypted.split(":");
+    const decipher = crypto.createDecipheriv(
+      "aes-256-gcm",
+      Buffer.from(this.encryptionKey, "hex").toString("hex"),
+      Buffer.from(ivHex, "hex").toString("hex")
+    );
+    decipher.setAuthTag(new Uint8Array(Buffer.from(tagHex, "hex")));
+    let decrypted = decipher.update(encryptedHex, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+    return decrypted;
+  }
+  // 生成新錢包，並加密私鑰
+  generateWallet() {
+    const wallet = Keypair2.generate();
+    const hexPrivateKey = Buffer.from(wallet.secretKey).toString("hex");
+    const encryptedPrivateKey = this.encryptPrivateKey(hexPrivateKey);
+    const record = {
+      publicKey: wallet.publicKey.toBase58(),
+      privateKeyEncrypted: encryptedPrivateKey
+    };
+    return record;
+  }
+  // 使用加密私鑰還原錢包
+  loadWallet(encryptedPrivateKey) {
+    const decryptedHex = this.decryptPrivateKey(encryptedPrivateKey);
+    const wallet = Keypair2.fromSecretKey(
+      new Uint8Array(Buffer.from(decryptedHex, "hex"))
+    );
+    decryptedHex.replace(/./g, "0");
+    return wallet;
+  }
+};
 export {
+  KeyVaultService,
   SolanaRPC,
   createAtaInstruction,
   hasAta,
