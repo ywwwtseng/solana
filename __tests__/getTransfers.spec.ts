@@ -1,3 +1,7 @@
+import { test, expect } from 'bun:test';
+import { type ParsedTransactionWithMeta } from '@solana/web3.js';
+import { getTransfers } from '../src';
+
 export const parsedTransaction = {
   blockTime: 1759305801,
   meta: {
@@ -100,3 +104,18 @@ export const parsedTransaction = {
   },
   version: 'legacy',
 };
+
+test('getTransfers', () => {
+  const transfers = getTransfers(
+    parsedTransaction as unknown as ParsedTransactionWithMeta
+  );
+  expect(transfers).toBeDefined();
+  expect(transfers.length).toBe(1);
+  expect(transfers[0].source).toBe(
+    'Cn9yzV2kdCQRYNUYZ4KXeD5Z7DmevUkqixjv8eaYYXfk'
+  );
+  expect(transfers[0].destination).toBe(
+    '5g1QJWjSKuP2Pd2hbRffiSKPt7qgNvHgSN3m7nzRNbBM'
+  );
+  expect(transfers[0].amount).toBe('200000');
+});

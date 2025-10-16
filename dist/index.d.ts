@@ -1,44 +1,6 @@
-import * as _solana_spl_token from '@solana/spl-token';
 import * as _solana_web3_js from '@solana/web3.js';
-import { Connection, ParsedTransactionWithMeta, Keypair, PublicKey } from '@solana/web3.js';
-
-declare class SolanaRPC {
-    readonly network: 'mainnet' | 'devnet';
-    readonly url: string | undefined;
-    readonly connection: Connection;
-    constructor({ url, network, }: {
-        url?: string;
-        network?: 'mainnet' | 'devnet';
-    });
-    init({ url, network }: {
-        url?: string;
-        network?: 'mainnet' | 'devnet';
-    }): SolanaRPC;
-    getSignaturesForAddress({ address, ...configuration }: {
-        address: string;
-        limit?: number;
-        commitment?: string;
-        minContextSlot?: number;
-        before?: string;
-        until?: string;
-    }): Promise<string[]>;
-    getTransaction({ signature }: {
-        signature: string;
-    }): Promise<ParsedTransactionWithMeta>;
-    getBalance({ publicKey, tokenAddress, }: {
-        publicKey: string;
-        tokenAddress?: string | null;
-    }): Promise<number | bigint>;
-    sendTransaction({ privateKey, destination, tokenAddress, amount, }: {
-        privateKey: string;
-        destination: string;
-        tokenAddress?: string | null;
-        amount: number;
-    }): Promise<string>;
-    getMint({ mint }: {
-        mint: string;
-    }): Promise<_solana_spl_token.Mint>;
-}
+import { Keypair, Connection, SignaturesForAddressOptions, ParsedTransactionWithMeta, PublicKey, Transaction } from '@solana/web3.js';
+export * from '@solana/web3.js';
 
 declare class KeyVaultService {
     private encryptionKey;
@@ -52,14 +14,56 @@ declare class KeyVaultService {
     loadWallet(encryptedPrivateKey: string): Keypair;
 }
 
-type TransferInfo = {
+declare class KeyPair {
+    static from(privateKey: string | Uint8Array): Keypair;
+}
+
+declare function endpoint(src: string): string;
+
+declare function getSignaturesForAddress(connection: Connection, { address, ...options }: {
+    address: string;
+} & SignaturesForAddressOptions): Promise<string[]>;
+
+declare function getTransaction(connection: Connection, { signature }: {
+    signature: string;
+}): Promise<_solana_web3_js.ParsedTransactionWithMeta>;
+
+type Transfer = {
     source: string;
     destination: string;
-    amount: number;
+    amount: string;
     mint?: string;
 };
-declare function parseTransfers(parsedTransaction: ParsedTransactionWithMeta): TransferInfo[];
-declare function hasAta(connection: Connection, mintAddress: string, ownerAddress: string): Promise<boolean>;
-declare function createAtaInstruction(payer: PublicKey, mint: PublicKey, owner: PublicKey): _solana_web3_js.TransactionInstruction;
 
-export { KeyVaultService, SolanaRPC, createAtaInstruction, hasAta, parseTransfers };
+declare function getTransfers(parsedTransaction: ParsedTransactionWithMeta): Transfer[];
+
+declare function getBalance(connection: Connection, { publicKey, tokenAddress, }: {
+    publicKey: string;
+    tokenAddress?: string | null;
+}): Promise<number | bigint>;
+
+declare function hasAta(connection: Connection, mintAddress: string | PublicKey, ownerAddress: string | PublicKey): Promise<boolean>;
+declare function createAtaInstruction(payer: PublicKey, mint: PublicKey, owner: PublicKey): _solana_web3_js.TransactionInstruction;
+declare function createSolanaTransaction({ source, destination, amount, }: {
+    source: string | PublicKey;
+    destination: string | PublicKey;
+    amount: bigint | string | number;
+}): Promise<Transaction>;
+declare function createTokenTransaction(connection: Connection, { feePayer, source, destination, amount, mint, }: {
+    feePayer: string | PublicKey;
+    source: string | PublicKey;
+    destination: string | PublicKey;
+    amount: bigint | string | number;
+    mint: string | PublicKey;
+}): Promise<Transaction>;
+declare function createTransaction(connection: Connection, { feePayer, source, destination, amount, mint, }: {
+    feePayer: string | PublicKey;
+    source: string | PublicKey;
+    destination: string | PublicKey;
+    amount: bigint | string | number;
+    mint?: string | PublicKey | null;
+}): Promise<Transaction>;
+
+declare function decodeTransfer(connection: Connection, base64: string): Promise<Transfer>;
+
+export { KeyPair, KeyVaultService, createAtaInstruction, createSolanaTransaction, createTokenTransaction, createTransaction, decodeTransfer, endpoint, getBalance, getSignaturesForAddress, getTransaction, getTransfers, hasAta };
